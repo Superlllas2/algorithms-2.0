@@ -5,21 +5,27 @@ using UnityEngine;
 
 public class DungeonGenerator : MonoBehaviour
 {
+    [SerializeField] private int overlap = 1;
     public RectInt initialBounds = new RectInt(0, 0, 100, 60);
     public int minSplitSize = 20;
     public int maxDepth = 4;
 
     private BSPNode rootNode;
+    private List<Room> allRooms = new();
+    private List<Door> doors = new();
 
     void Start()
     {
         rootNode = new BSPNode { Bounds = initialBounds };
         Split(rootNode, maxDepth);
+        CreateRooms(rootNode);
+        ConnectRooms(rootNode);
     }
 
     void Update()
     {
         DrawDebugRects(rootNode);
+        DrawDebugDoors(doors);
     }
 
     void Split(BSPNode node, int depth)
@@ -36,11 +42,11 @@ public class DungeonGenerator : MonoBehaviour
 
         if (splitHorizontally)
         {
-            Debug.Log("splitHorizontally");
+            // Debug.Log("splitHorizontally");
             int splitY = Random.Range(minSplitSize, node.Bounds.height - minSplitSize);
             node.Left = new BSPNode
             {
-                Bounds = new RectInt(node.Bounds.x, node.Bounds.y, node.Bounds.width, splitY)
+                Bounds = new RectInt(node.Bounds.x, node.Bounds.y, node.Bounds.width, splitY + overlap)
             };
             node.Right = new BSPNode
             {
@@ -49,11 +55,11 @@ public class DungeonGenerator : MonoBehaviour
         }
         else
         {
-            Debug.Log("splitVertically");
+            // Debug.Log("splitVertically");
             int splitX = Random.Range(minSplitSize, node.Bounds.width - minSplitSize);
             node.Left = new BSPNode
             {
-                Bounds = new RectInt(node.Bounds.x, node.Bounds.y, splitX, node.Bounds.height)
+                Bounds = new RectInt(node.Bounds.x, node.Bounds.y, splitX + overlap, node.Bounds.height)
             };
             node.Right = new BSPNode
             {
@@ -64,6 +70,73 @@ public class DungeonGenerator : MonoBehaviour
         Split(node.Left, depth - 1);
         Split(node.Right, depth - 1);
     }
+    
+    void ConnectRooms(BSPNode node)
+    {
+        if (node.Left == null || node.Right == null)
+            return;
+
+        var roomA = GetRoomInSubtree(node.Left);
+        var roomB = GetRoomInSubtree(node.Right);
+
+        if (roomA != null && roomB != null)
+        {
+            // Get shared wall
+            var overlap = AlgorithmsUtils.Intersect(roomA.Bounds, roomB.Bounds);
+
+            if (overlap.width > 0 || overlap.height > 0)
+            {
+                Vector2Int doorPos;
+
+                if (overlap.width > 0) // Vertical wall
+                {
+                    int centerX = overlap.xMin + overlap.width / 2;
+                    int centerY = overlap.yMin + overlap.height / 2;
+                    doorPos = new Vector2Int(centerX, centerY);
+                }
+                else // Horizontal wall
+                {
+                    int centerX = overlap.xMin + overlap.width / 2;
+                    int centerY = overlap.yMin + overlap.height / 2;
+                    doorPos = new Vector2Int(centerX, centerY);
+                }
+
+                var door = new Door(doorPos, roomA, roomB);
+                doors.Add(door);
+            }
+        }
+
+        ConnectRooms(node.Left);
+        ConnectRooms(node.Right);
+    }
+
+    Room GetRoomInSubtree(BSPNode node)
+    {
+        if (node == null) return null;
+
+        if (node.Room != null)
+            return node.Room;
+
+        Room left = GetRoomInSubtree(node.Left);
+        if (left != null) return left;
+
+        return GetRoomInSubtree(node.Right);
+    }
+
+    void CreateRooms(BSPNode node)
+    {
+        if (node.Left != null || node.Right != null)
+        {
+            if (node.Left != null) CreateRooms(node.Left);
+            if (node.Right != null) CreateRooms(node.Right);
+            return;
+        }
+
+        Room room = new Room { Bounds = node.Bounds };
+        node.Room = room;
+        allRooms.Add(room);
+    }
+
 
     void DrawDebugRects(BSPNode node)
     {
@@ -73,5 +146,15 @@ public class DungeonGenerator : MonoBehaviour
 
         DrawDebugRects(node.Left);
         DrawDebugRects(node.Right);
+    }
+
+    void DrawDebugDoors(List<Door> doorsList)
+    {
+        foreach (var door in doorsList)
+        {
+            var pos = door.Position;
+            var doorRect = new RectInt(pos.x, pos.y, overlap, overlap);
+            AlgorithmsUtils.DebugRectInt(doorRect, Color.cyan);
+        }
     }
 }

@@ -455,13 +455,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b99bdc7893c143cfab05c14ba437d29, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  overlap: 1
   initialBounds:
     x: 0
     y: 0
     width: 100
     height: 60
-  minSplitSize: 20
-  maxDepth: 2
+  minSplitSize: 10
+  maxDepth: 4
 --- !u!4 &2027769810
 Transform:
   m_ObjectHideFlags: 0

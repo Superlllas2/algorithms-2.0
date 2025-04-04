@@ -1,7 +1,6 @@
-namespace DefaultNamespace
+using UnityEngine;
+
+public class Room
 {
-    public class Room
-    {
-        
-    }
+    public RectInt Bounds;
 }
