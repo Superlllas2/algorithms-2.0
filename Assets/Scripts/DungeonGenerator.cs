@@ -29,6 +29,7 @@ public class DungeonGenerator : MonoBehaviour
     {
         DrawDebugRects(rootNode);
         DrawDebugDoors(doors);
+        DrawRoomGraph();
     }
 
     void Split(BSPNode node, int depth)
@@ -111,8 +112,6 @@ public class DungeonGenerator : MonoBehaviour
 
         ConnectRooms(node.Left);
         ConnectRooms(node.Right);
-        roomA?.ConnectedRooms.Add(roomB);
-        roomB?.ConnectedRooms.Add(roomA);
         // Debug.Log("Connected rooms A: " + roomA.ConnectedRooms.Count);
         // Debug.Log("Connected rooms B: " + roomB.ConnectedRooms.Count);
     }
@@ -175,6 +174,34 @@ public class DungeonGenerator : MonoBehaviour
             }
         }
     }
+    
+    void DrawRoomGraph()
+    {
+        // ROOM CENTER CIRCLE
+        foreach (var room in allRooms)
+        {
+            Vector3 roomCenter = new Vector3(room.Bounds.center.x, 0.5f, room.Bounds.center.y);
+            DebugExtension.DebugCircle(roomCenter, Vector3.up, Color.green);
+        }
+
+        // DOORS AND ROOM
+        foreach (var door in doors)
+        {
+            Vector3 doorPos = new Vector3(door.Position.x + 0.5f, 0.5f, door.Position.y + 0.5f);
+
+            // Draw door node
+            DebugExtension.DebugCircle(doorPos, Vector3.up, Color.cyan);
+
+            // Connect door to its rooms
+            foreach (var room in door.ConnectedRooms)
+            {
+                Vector3 roomCenter = new Vector3(room.Bounds.center.x, 0.5f, room.Bounds.center.y);
+                Debug.DrawLine(roomCenter, doorPos, Color.green);
+            }
+        }
+    }
+
+
 
     void DrawDebugRects(BSPNode node)
     {
