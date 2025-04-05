@@ -6,6 +6,8 @@ using UnityEngine;
 public class DungeonGenerator : MonoBehaviour
 {
     [SerializeField] private int overlap = 1;
+    [SerializeField] private int minDoorLength = 2;
+    
     public RectInt initialBounds = new RectInt(0, 0, 100, 60);
     public int minSplitSize = 20;
     public int maxDepth = 4;
@@ -20,6 +22,7 @@ public class DungeonGenerator : MonoBehaviour
         Split(rootNode, maxDepth);
         CreateRooms(rootNode);
         ConnectRooms(rootNode);
+        ConnectAdjacentRooms();
     }
 
     void Update()
@@ -108,6 +111,10 @@ public class DungeonGenerator : MonoBehaviour
 
         ConnectRooms(node.Left);
         ConnectRooms(node.Right);
+        roomA?.ConnectedRooms.Add(roomB);
+        roomB?.ConnectedRooms.Add(roomA);
+        // Debug.Log("Connected rooms A: " + roomA.ConnectedRooms.Count);
+        // Debug.Log("Connected rooms B: " + roomB.ConnectedRooms.Count);
     }
 
     Room GetRoomInSubtree(BSPNode node)
@@ -136,7 +143,38 @@ public class DungeonGenerator : MonoBehaviour
         node.Room = room;
         allRooms.Add(room);
     }
+    
+    void ConnectAdjacentRooms()
+    {
+        for (int i = 0; i < allRooms.Count; i++)
+        {
+            for (int j = i + 1; j < allRooms.Count; j++)
+            {
+                Room a = allRooms[i];
+                Room b = allRooms[j];
 
+                RectInt sharedWall = AlgorithmsUtils.Intersect(a.Bounds, b.Bounds);
+
+                bool isVerticalWall = sharedWall.width == 1 && sharedWall.height >= minDoorLength;
+                bool isHorizontalWall = sharedWall.height == 1 && sharedWall.width >= minDoorLength;
+
+                if (isVerticalWall || isHorizontalWall)
+                {
+                    int centerX = sharedWall.xMin + sharedWall.width / 2;
+                    int centerY = sharedWall.yMin + sharedWall.height / 2;
+                    Vector2Int doorPos = new Vector2Int(centerX, centerY);
+
+                    // Avoid duplicate connection
+                    if (!a.ConnectedRooms.Contains(b))
+                    {
+                        a.ConnectedRooms.Add(b);
+                        b.ConnectedRooms.Add(a);
+                        doors.Add(new Door(doorPos, a, b));
+                    }
+                }
+            }
+        }
+    }
 
     void DrawDebugRects(BSPNode node)
     {

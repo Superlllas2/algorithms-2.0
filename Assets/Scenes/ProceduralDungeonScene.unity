@@ -456,6 +456,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   overlap: 1
+  minDoorLength: 3
   initialBounds:
     x: 0
     y: 0
