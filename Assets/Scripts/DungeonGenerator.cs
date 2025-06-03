@@ -7,6 +7,10 @@ public class DungeonGenerator : MonoBehaviour
 {
     [SerializeField] private int overlap = 1;
     [SerializeField] private int minDoorLength = 2;
+    [SerializeField] private GameObject wallPrefab;
+    [SerializeField] private GameObject floorPrefab;
+    [SerializeField] private GameObject doorPrefab;
+    [SerializeField] private float wallHeight = 2f;
     
     public RectInt initialBounds = new RectInt(0, 0, 100, 60);
     public int minSplitSize = 20;
@@ -23,6 +27,7 @@ public class DungeonGenerator : MonoBehaviour
         CreateRooms(rootNode);
         ConnectRooms(rootNode);
         ConnectAdjacentRooms();
+        CreateOuterWalls(initialBounds);
     }
 
     void Update()
@@ -115,33 +120,6 @@ public class DungeonGenerator : MonoBehaviour
         // Debug.Log("Connected rooms A: " + roomA.ConnectedRooms.Count);
         // Debug.Log("Connected rooms B: " + roomB.ConnectedRooms.Count);
     }
-
-    Room GetRoomInSubtree(BSPNode node)
-    {
-        if (node == null) return null;
-
-        if (node.Room != null)
-            return node.Room;
-
-        Room left = GetRoomInSubtree(node.Left);
-        if (left != null) return left;
-
-        return GetRoomInSubtree(node.Right);
-    }
-
-    void CreateRooms(BSPNode node)
-    {
-        if (node.Left != null || node.Right != null)
-        {
-            if (node.Left != null) CreateRooms(node.Left);
-            if (node.Right != null) CreateRooms(node.Right);
-            return;
-        }
-
-        Room room = new Room { Bounds = node.Bounds };
-        node.Room = room;
-        allRooms.Add(room);
-    }
     
     void ConnectAdjacentRooms()
     {
@@ -174,6 +152,35 @@ public class DungeonGenerator : MonoBehaviour
             }
         }
     }
+
+    Room GetRoomInSubtree(BSPNode node)
+    {
+        if (node == null) return null;
+
+        if (node.Room != null)
+            return node.Room;
+
+        Room left = GetRoomInSubtree(node.Left);
+        if (left != null) return left;
+
+        return GetRoomInSubtree(node.Right);
+    }
+
+    void CreateRooms(BSPNode node)
+    {
+        if (node.Left != null || node.Right != null)
+        {
+            if (node.Left != null) CreateRooms(node.Left);
+            if (node.Right != null) CreateRooms(node.Right);
+            return;
+        }
+
+        Room room = new Room { Bounds = node.Bounds };
+        node.Room = room;
+        allRooms.Add(room);
+        
+        CreateFloor(room.Bounds);
+    }
     
     void DrawRoomGraph()
     {
@@ -200,8 +207,47 @@ public class DungeonGenerator : MonoBehaviour
             }
         }
     }
+    
+    void CreateWall(RectInt wallRect)
+    {
+        Vector3 position = new Vector3(wallRect.center.x, wallHeight / 2f, wallRect.center.y);
+        Vector3 scale = new Vector3(wallRect.width, wallHeight, wallRect.height);
 
+        var wall = Instantiate(wallPrefab, position, Quaternion.identity);
+        wall.transform.localScale = scale;
+        wall.isStatic = true;
+    }
+    
+    void CreateFloor(RectInt area)
+    {
+        for (int x = area.xMin; x < area.xMax; x++)
+        {
+            for (int y = area.yMin; y < area.yMax; y++)
+            {
+                Vector3 pos = new Vector3(x + 0.5f, 0f, y + 0.5f); // Y = 0 (ground level)
+                GameObject floor = Instantiate(floorPrefab, pos, Quaternion.identity);
+                floor.transform.localScale = new Vector3(1, 0.1f, 1); // Thin tile
+                floor.isStatic = true;
+            }
+        }
+    }
 
+    void CreateOuterWalls(RectInt bounds)
+    {
+        int thickness = 1;
+
+        // Creating the left wall
+        CreateWall(new RectInt(bounds.xMin - thickness, bounds.yMin, thickness, bounds.height));
+
+        // Creating the right wall
+        CreateWall(new RectInt(bounds.xMax, bounds.yMin, thickness, bounds.height));
+
+        // Creating the bottom wall
+        CreateWall(new RectInt(bounds.xMin - thickness, bounds.yMin - thickness, bounds.width + 2 * thickness, thickness));
+
+        // Creating the top wall
+        CreateWall(new RectInt(bounds.xMin - thickness, bounds.yMax, bounds.width + 2 * thickness, thickness));
+    }
 
     void DrawDebugRects(BSPNode node)
     {

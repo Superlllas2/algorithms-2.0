@@ -457,6 +457,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   overlap: 1
   minDoorLength: 5
+  wallPrefab: {fileID: 7012266092707615842, guid: 94902980f8daa45b4a48db8420f40c05, type: 3}
+  floorPrefab: {fileID: 4804604178942966727, guid: 6dde9d85fd1a94bf88dc657d23974b8b, type: 3}
+  doorPrefab: {fileID: 0}
+  wallHeight: 2
   initialBounds:
     x: 0
     y: 0
