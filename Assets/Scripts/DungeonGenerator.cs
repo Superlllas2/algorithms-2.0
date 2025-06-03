@@ -19,14 +19,21 @@ public class DungeonGenerator : MonoBehaviour
     private BSPNode rootNode;
     private List<Room> allRooms = new();
     private List<Door> doors = new();
+    
+    private Transform floorParent;
+    private Transform wallParent;
+    private Transform doorParent;
 
     void Start()
     {
+        floorParent = new GameObject("FloorTiles").transform;
+        
         rootNode = new BSPNode { Bounds = initialBounds };
         Split(rootNode, maxDepth);
         CreateRooms(rootNode);
         ConnectRooms(rootNode);
         ConnectAdjacentRooms();
+        CreateRoomWallsForAll();
         CreateOuterWalls(initialBounds);
     }
 
@@ -112,6 +119,7 @@ public class DungeonGenerator : MonoBehaviour
 
                 var door = new Door(doorPos, roomA, roomB);
                 doors.Add(door);
+                // CreateDoor(doorPos);
             }
         }
 
@@ -147,6 +155,7 @@ public class DungeonGenerator : MonoBehaviour
                         a.ConnectedRooms.Add(b);
                         b.ConnectedRooms.Add(a);
                         doors.Add(new Door(doorPos, a, b));
+                        // CreateDoor(doorPos);
                     }
                 }
             }
@@ -225,13 +234,74 @@ public class DungeonGenerator : MonoBehaviour
             for (int y = area.yMin; y < area.yMax; y++)
             {
                 Vector3 pos = new Vector3(x + 0.5f, 0f, y + 0.5f); // Y = 0 (ground level)
-                GameObject floor = Instantiate(floorPrefab, pos, Quaternion.identity);
+                GameObject floor = Instantiate(floorPrefab, pos, Quaternion.identity, floorParent);
                 floor.transform.localScale = new Vector3(1, 0.1f, 1); // Thin tile
                 floor.isStatic = true;
             }
         }
     }
+    
+    void CreateDoor(Vector2Int doorPos)
+    {
+        if (doorPrefab == null) return;
 
+        Vector3 pos = new Vector3(doorPos.x + 0.5f, 0f, doorPos.y + 0.5f);
+        GameObject door = Instantiate(doorPrefab, pos, Quaternion.identity, doorParent);
+        door.transform.localScale = new Vector3(1, wallHeight, 1);
+        door.isStatic = true;
+    }
+
+    void CreateRoomWallsForAll()
+    {
+        foreach (var room in allRooms)
+        {
+            CreateRoomWalls(room);
+        }
+    }
+    
+    void CreateRoomWalls(Room room)
+    {
+        if (wallParent == null)
+            wallParent = new GameObject("WallTiles").transform;
+
+        var bounds = room.Bounds;
+
+        // 4 стороны комнаты
+        for (int x = bounds.xMin; x < bounds.xMax; x++)
+        {
+            Vector2Int posTop = new Vector2Int(x, bounds.yMax - 1);
+            Vector2Int posBottom = new Vector2Int(x, bounds.yMin);
+            if (!IsDoorPosition(posTop)) CreateWallAt(posTop);
+            if (!IsDoorPosition(posBottom)) CreateWallAt(posBottom);
+        }
+
+        for (int y = bounds.yMin; y < bounds.yMax; y++)
+        {
+            Vector2Int posLeft = new Vector2Int(bounds.xMin, y);
+            Vector2Int posRight = new Vector2Int(bounds.xMax - 1, y);
+            if (!IsDoorPosition(posLeft)) CreateWallAt(posLeft);
+            if (!IsDoorPosition(posRight)) CreateWallAt(posRight);
+        }
+    }
+
+    bool IsDoorPosition(Vector2Int pos)
+    {
+        foreach (var door in doors)
+        {
+            if (door.Position == pos)
+                return true;
+        }
+        return false;
+    }
+
+    void CreateWallAt(Vector2Int pos)
+    {
+        Vector3 position = new Vector3(pos.x + 0.5f, wallHeight / 2f, pos.y + 0.5f);
+        GameObject wall = Instantiate(wallPrefab, position, Quaternion.identity, wallParent);
+        wall.transform.localScale = new Vector3(1, wallHeight, 1);
+        wall.isStatic = true;
+    }
+    
     void CreateOuterWalls(RectInt bounds)
     {
         int thickness = 1;
