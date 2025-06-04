@@ -14,7 +14,9 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField] private float wallHeight = 2f;
     [SerializeField] private NavMeshSurface surface;
     [SerializeField] private GameObject heroPrefab;
-    
+    private bool showGizmos = true;
+    private GameObject heroInstance;
+
     public RectInt initialBounds = new RectInt(0, 0, 100, 60);
     public int minSplitSize = 20;
     public int maxDepth = 4;
@@ -22,7 +24,7 @@ public class DungeonGenerator : MonoBehaviour
     private BSPNode rootNode;
     private List<Room> allRooms = new();
     private List<Door> doors = new();
-    
+
     private Transform floorParent;
     private Transform wallParent;
     private Transform doorParent;
@@ -30,7 +32,7 @@ public class DungeonGenerator : MonoBehaviour
     void Start()
     {
         floorParent = new GameObject("FloorTiles").transform;
-        
+
         rootNode = new BSPNode { Bounds = initialBounds };
         Split(rootNode, maxDepth);
         CreateRooms(rootNode);
@@ -44,6 +46,17 @@ public class DungeonGenerator : MonoBehaviour
 
     void Update()
     {
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            Regenerate();
+        }
+
+        if (Input.GetKeyDown(KeyCode.G))
+        {
+            showGizmos = !showGizmos;
+        }
+
+        if (!showGizmos) return;
         DrawDebugRects(rootNode);
         DrawDebugDoors(doors);
         DrawRoomGraph();
@@ -71,7 +84,8 @@ public class DungeonGenerator : MonoBehaviour
             };
             node.Right = new BSPNode
             {
-                Bounds = new RectInt(node.Bounds.x, node.Bounds.y + splitY, node.Bounds.width, node.Bounds.height - splitY)
+                Bounds = new RectInt(node.Bounds.x, node.Bounds.y + splitY, node.Bounds.width,
+                    node.Bounds.height - splitY)
             };
         }
         else
@@ -84,14 +98,15 @@ public class DungeonGenerator : MonoBehaviour
             };
             node.Right = new BSPNode
             {
-                Bounds = new RectInt(node.Bounds.x + splitX, node.Bounds.y, node.Bounds.width - splitX, node.Bounds.height)
+                Bounds = new RectInt(node.Bounds.x + splitX, node.Bounds.y, node.Bounds.width - splitX,
+                    node.Bounds.height)
             };
         }
 
         Split(node.Left, depth - 1);
         Split(node.Right, depth - 1);
     }
-    
+
     void ConnectRooms(BSPNode node)
     {
         if (node.Left == null || node.Right == null)
@@ -109,22 +124,33 @@ public class DungeonGenerator : MonoBehaviour
             {
                 Vector2Int doorPos;
 
-                if (overlap.width > 0) // Vertical wall
+                if (overlap.width > 1) // Vertical wall
                 {
-                    int centerX = overlap.xMin + overlap.width / 2;
-                    int centerY = overlap.yMin + overlap.height / 2;
-                    doorPos = new Vector2Int(centerX, centerY);
+                    var x = Mathf.Clamp(overlap.xMin + Random.Range(1, overlap.width - 1), overlap.xMin + 1,
+                        overlap.xMax - 2);
+                    var y = overlap.yMin;
+                    doorPos = new Vector2Int(x, y);
                 }
-                else // Horizontal wall
+                else if (overlap.height > 1) // Horizontal wall
                 {
-                    int centerX = overlap.xMin + overlap.width / 2;
-                    int centerY = overlap.yMin + overlap.height / 2;
-                    doorPos = new Vector2Int(centerX, centerY);
+                    var x = overlap.xMin;
+                    var y = Mathf.Clamp(overlap.yMin + Random.Range(1, overlap.height - 1), overlap.yMin + 1,
+                        overlap.yMax - 2);
+                    doorPos = new Vector2Int(x, y);
+                }
+                else
+                {
+                    // If the wall is too short
+                    doorPos = new Vector2Int(overlap.xMin, overlap.yMin);
                 }
 
-                var door = new Door(doorPos, roomA, roomB);
-                doors.Add(door);
-                // CreateDoor(doorPos);
+                // Adding door only if rooms are not already connected
+                if (!roomA.ConnectedRooms.Contains(roomB))
+                {
+                    roomA.ConnectedRooms.Add(roomB);
+                    roomB.ConnectedRooms.Add(roomA);
+                    doors.Add(new Door(doorPos, roomA, roomB));
+                }
             }
         }
 
@@ -133,7 +159,7 @@ public class DungeonGenerator : MonoBehaviour
         // Debug.Log("Connected rooms A: " + roomA.ConnectedRooms.Count);
         // Debug.Log("Connected rooms B: " + roomB.ConnectedRooms.Count);
     }
-    
+
     void ConnectAdjacentRooms()
     {
         for (int i = 0; i < allRooms.Count; i++)
@@ -192,10 +218,10 @@ public class DungeonGenerator : MonoBehaviour
         Room room = new Room { Bounds = node.Bounds };
         node.Room = room;
         allRooms.Add(room);
-        
+
         CreateFloor(room.Bounds);
     }
-    
+
     void DrawRoomGraph()
     {
         // ROOM CENTER CIRCLE
@@ -221,7 +247,7 @@ public class DungeonGenerator : MonoBehaviour
             }
         }
     }
-    
+
     void CreateWall(RectInt wallRect)
     {
         Vector3 position = new Vector3(wallRect.center.x, wallHeight / 2f, wallRect.center.y);
@@ -231,7 +257,7 @@ public class DungeonGenerator : MonoBehaviour
         wall.transform.localScale = scale;
         wall.isStatic = true;
     }
-    
+
     void CreateFloor(RectInt area)
     {
         for (int x = area.xMin; x < area.xMax; x++)
@@ -245,7 +271,7 @@ public class DungeonGenerator : MonoBehaviour
             }
         }
     }
-    
+
     void CreateDoor(Vector2Int doorPos)
     {
         if (doorPrefab == null) return;
@@ -306,7 +332,7 @@ public class DungeonGenerator : MonoBehaviour
         wall.transform.localScale = new Vector3(1, wallHeight, 1);
         wall.isStatic = true;
     }
-    
+
     void CreateOuterWalls(RectInt bounds)
     {
         int thickness = 1;
@@ -318,10 +344,52 @@ public class DungeonGenerator : MonoBehaviour
         CreateWall(new RectInt(bounds.xMax, bounds.yMin, thickness, bounds.height));
 
         // Creating the bottom wall
-        CreateWall(new RectInt(bounds.xMin - thickness, bounds.yMin - thickness, bounds.width + 2 * thickness, thickness));
+        CreateWall(new RectInt(bounds.xMin - thickness, bounds.yMin - thickness, bounds.width + 2 * thickness,
+            thickness));
 
         // Creating the top wall
         CreateWall(new RectInt(bounds.xMin - thickness, bounds.yMax, bounds.width + 2 * thickness, thickness));
+    }
+    
+    void ClearDungeon()
+    {
+        // Deleting floors
+        if (floorParent) DestroyImmediate(floorParent.gameObject);
+
+        // Deleting walls
+        if (wallParent) DestroyImmediate(wallParent.gameObject);
+
+        // Deleting doors
+        if (doorParent) DestroyImmediate(doorParent.gameObject);
+
+        // Deleting old hero
+        var oldHero = GameObject.FindWithTag("Player");
+        if (oldHero) DestroyImmediate(oldHero);
+
+        // Clearing the lists
+        allRooms.Clear();
+        doors.Clear();
+    }
+
+    void Regenerate()
+    {
+        ClearDungeon();
+
+        rootNode = new BSPNode { Bounds = initialBounds };
+    
+        // Full new generation
+        Split(rootNode, maxDepth);
+        CreateRooms(rootNode);
+        ConnectRooms(rootNode);
+        ConnectAdjacentRooms();
+        CreateRoomWallsForAll();
+        CreateOuterWalls(initialBounds);
+
+        // Nav mesh new baking
+        surface.BuildNavMesh();
+
+        // New hero
+        Instantiate(heroPrefab, new Vector3(5, 0.5f, 5), Quaternion.identity);
     }
 
     void DrawDebugRects(BSPNode node)
