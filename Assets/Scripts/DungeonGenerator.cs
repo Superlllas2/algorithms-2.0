@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using NUnit.Framework;
+using Unity.AI.Navigation;
 using Unity.VisualScripting;
 using UnityEngine;
 
@@ -11,6 +12,8 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField] private GameObject floorPrefab;
     [SerializeField] private GameObject doorPrefab;
     [SerializeField] private float wallHeight = 2f;
+    [SerializeField] private NavMeshSurface surface;
+    [SerializeField] private GameObject heroPrefab;
     
     public RectInt initialBounds = new RectInt(0, 0, 100, 60);
     public int minSplitSize = 20;
@@ -35,6 +38,8 @@ public class DungeonGenerator : MonoBehaviour
         ConnectAdjacentRooms();
         CreateRoomWallsForAll();
         CreateOuterWalls(initialBounds);
+        surface.BuildNavMesh();
+        Instantiate(heroPrefab, new Vector3(5, 0.5f, 5), Quaternion.identity);
     }
 
     void Update()
