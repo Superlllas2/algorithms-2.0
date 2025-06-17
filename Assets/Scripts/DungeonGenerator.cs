@@ -34,10 +34,12 @@ public class DungeonGenerator : MonoBehaviour
         floorParent = new GameObject("FloorTiles").transform;
 
         rootNode = new BSPNode { Bounds = initialBounds };
+        // TODO: flowchart for these 4 methods
         Split(rootNode, maxDepth);
         CreateRooms(rootNode);
         ConnectRooms(rootNode);
         ConnectAdjacentRooms();
+        // ---------
         CreateRoomWallsForAll();
         CreateOuterWalls(initialBounds);
         surface.BuildNavMesh();
