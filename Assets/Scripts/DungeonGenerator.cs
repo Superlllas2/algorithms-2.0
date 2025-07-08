@@ -25,6 +25,9 @@ public class DungeonGenerator : MonoBehaviour
     private List<Room> allRooms = new();
     private List<Door> doors = new();
 
+    private HashSet<Vector2Int> placedFloors = new();
+    private HashSet<Vector2Int> placedWalls = new();
+
     private Transform floorParent;
     private Transform wallParent;
     private Transform doorParent;
@@ -266,10 +269,14 @@ public class DungeonGenerator : MonoBehaviour
         {
             for (int y = area.yMin; y < area.yMax; y++)
             {
-                Vector3 pos = new Vector3(x + 0.5f, 0f, y + 0.5f); // Y = 0 (ground level)
-                GameObject floor = Instantiate(floorPrefab, pos, Quaternion.identity, floorParent);
-                floor.transform.localScale = new Vector3(1, 0.1f, 1); // Thin tile
-                floor.isStatic = true;
+                Vector2Int cell = new Vector2Int(x, y);
+                if (placedFloors.Add(cell))
+                {
+                    Vector3 pos = new Vector3(x + 0.5f, 0f, y + 0.5f); // Y = 0 (ground level)
+                    GameObject floor = Instantiate(floorPrefab, pos, Quaternion.identity, floorParent);
+                    floor.transform.localScale = new Vector3(1, 0.1f, 1); // Thin tile
+                    floor.isStatic = true;
+                }
             }
         }
     }
@@ -329,10 +336,13 @@ public class DungeonGenerator : MonoBehaviour
 
     void CreateWallAt(Vector2Int pos)
     {
-        Vector3 position = new Vector3(pos.x + 0.5f, wallHeight / 2f, pos.y + 0.5f);
-        GameObject wall = Instantiate(wallPrefab, position, Quaternion.identity, wallParent);
-        wall.transform.localScale = new Vector3(1, wallHeight, 1);
-        wall.isStatic = true;
+        if (placedWalls.Add(pos))
+        {
+            Vector3 position = new Vector3(pos.x + 0.5f, wallHeight / 2f, pos.y + 0.5f);
+            GameObject wall = Instantiate(wallPrefab, position, Quaternion.identity, wallParent);
+            wall.transform.localScale = new Vector3(1, wallHeight, 1);
+            wall.isStatic = true;
+        }
     }
 
     void CreateOuterWalls(RectInt bounds)
@@ -371,6 +381,8 @@ public class DungeonGenerator : MonoBehaviour
         // Clearing the lists
         allRooms.Clear();
         doors.Clear();
+        placedFloors.Clear();
+        placedWalls.Clear();
     }
 
     void Regenerate()
