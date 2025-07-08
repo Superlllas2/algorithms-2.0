@@ -1,7 +1,5 @@
 using System.Collections.Generic;
-using NUnit.Framework;
 using Unity.AI.Navigation;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class DungeonGenerator : MonoBehaviour
@@ -47,6 +45,7 @@ public class DungeonGenerator : MonoBehaviour
         CreateOuterWalls(initialBounds);
         surface.BuildNavMesh();
         Instantiate(heroPrefab, new Vector3(5, 0.5f, 5), Quaternion.identity);
+        Debug.Log($"Dungeon fully connected: {IsDungeonFullyConnected()}");
     }
 
     void Update()
@@ -429,6 +428,13 @@ public class DungeonGenerator : MonoBehaviour
     public bool IsDungeonFullyConnected()
     {
         return IsGraphConnected(allRooms);
+    }
+
+    public bool TestConnectivity()
+    {
+        bool connected = IsDungeonFullyConnected();
+        Debug.Log($"Dungeon fully connected: {connected}");
+        return connected;
     }
 
     public static bool IsGraphConnected(List<Room> rooms)
