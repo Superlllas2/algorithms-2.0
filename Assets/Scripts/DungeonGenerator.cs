@@ -425,4 +425,35 @@ public class DungeonGenerator : MonoBehaviour
             AlgorithmsUtils.DebugRectInt(doorRect, Color.cyan);
         }
     }
+
+    public bool IsDungeonFullyConnected()
+    {
+        return IsGraphConnected(allRooms);
+    }
+
+    public static bool IsGraphConnected(List<Room> rooms)
+    {
+        if (rooms == null || rooms.Count == 0)
+            return true;
+
+        var visited = new HashSet<Room>();
+        var queue = new Queue<Room>();
+
+        visited.Add(rooms[0]);
+        queue.Enqueue(rooms[0]);
+
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+            foreach (var neighbor in current.ConnectedRooms)
+            {
+                if (visited.Add(neighbor))
+                {
+                    queue.Enqueue(neighbor);
+                }
+            }
+        }
+
+        return visited.Count == rooms.Count;
+    }
 }
