@@ -50,16 +50,9 @@ public class DungeonGenerator : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.R))
-        {
-            Regenerate();
-        }
-
-        if (Input.GetKeyDown(KeyCode.G))
-        {
-            showGizmos = !showGizmos;
-        }
-
+        if (Input.GetKeyDown(KeyCode.R)) Regenerate();
+        if (Input.GetKeyDown(KeyCode.G)) showGizmos = !showGizmos;
+        
         if (!showGizmos) return;
         DrawDebugRects(rootNode);
         DrawDebugDoors(doors);
@@ -297,7 +290,7 @@ public class DungeonGenerator : MonoBehaviour
             CreateRoomWalls(room);
         }
     }
-    
+
     void CreateRoomWalls(Room room)
     {
         if (wallParent == null)
@@ -330,6 +323,7 @@ public class DungeonGenerator : MonoBehaviour
             if (door.Position == pos)
                 return true;
         }
+
         return false;
     }
 
@@ -361,7 +355,7 @@ public class DungeonGenerator : MonoBehaviour
         // Creating the top wall
         CreateWall(new RectInt(bounds.xMin - thickness, bounds.yMax, bounds.width + 2 * thickness, thickness));
     }
-    
+
     void ClearDungeon()
     {
         // Deleting floors
@@ -389,7 +383,7 @@ public class DungeonGenerator : MonoBehaviour
         ClearDungeon();
 
         rootNode = new BSPNode { Bounds = initialBounds };
-    
+
         // Full new generation
         Split(rootNode, maxDepth);
         CreateRooms(rootNode);
@@ -429,7 +423,7 @@ public class DungeonGenerator : MonoBehaviour
     {
         return IsGraphConnected(allRooms);
     }
-    
+
     public static bool IsGraphConnected(List<Room> rooms)
     {
         if (rooms == null || rooms.Count == 0)
